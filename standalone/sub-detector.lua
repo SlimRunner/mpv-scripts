@@ -55,7 +55,8 @@ local function select_best_subtitle()
 
       local is_primary_match = false
       for _, kw in ipairs(PRIMARY_KEYWORDS) do
-        if lang == kw or title:find(kw, 1, true) then
+        -- matches only full words
+        if lang == kw or title:find("%f[%w]"..kw.."%f[%W]", 1, true) then
           is_primary_match = true
           break
         end
@@ -73,7 +74,8 @@ local function select_best_subtitle()
   for _, track in ipairs(primary_matches) do
     local title = (track.title or ""):lower()
     for _, sec_kw in ipairs(SECONDARY_KEYWORDS) do
-      if title:find(sec_kw, 1, true) then
+      -- matches only full words
+      if title:find("%f[%w]"..sec_kw.."%f[%W]", 1, true) then
         -- Found an anime-specific track, select it immediately
         mp.set_property_number("sid", track.id)
         mp.msg.info("Selected secondary match: " .. (track.title or "Untitled"))
