@@ -93,4 +93,4 @@ end
 -- File loaded event triggers right before track layout selection
 mp.add_hook("on_load", 50, discover_sibling_subs)
 -- Observe track changes to select the best track once loaded
-mp.observe_property("track-list", "native", select_best_subtitle)
+mp.register_event("file-loaded", select_best_subtitle)
