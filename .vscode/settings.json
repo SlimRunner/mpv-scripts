@@ -1,0 +1,15 @@
+{
+    "Lua.runtime.version": "Lua 5.1", 
+    "Lua.diagnostics.globals": [
+        "mp",
+        "mpopt"
+    ],
+    "Lua.workspace.library": [
+        // Optional: If you want autocomplete for mpv's API, 
+        // you can clone the mpv Lua definition files and path them here.
+        "C:/tools/autocomp_libs/mp.lua"
+    ],
+    "Lua.diagnostics.disable": [
+        "lowercase-global"
+    ]
+}
