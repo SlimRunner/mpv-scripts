@@ -27,7 +27,7 @@ local function discover_sibling_subs()
     -- Verify it actually exists and is readable
     local info = utils.readdir(target_path)
     if info then
-      table.insert(paths_to_add, target_path)
+      table.insert(paths_to_add, sibling_name)
     end
   end
 
@@ -35,6 +35,7 @@ local function discover_sibling_subs()
     local current_paths = mp.get_property_native("sub-file-paths") or {}
     for _, p in ipairs(paths_to_add) do
       table.insert(current_paths, p)
+      mp.msg.info("Added relative path: " .. p)
     end
     mp.set_property_native("sub-file-paths", current_paths)
   end
