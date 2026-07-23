@@ -1,31 +1,29 @@
 local utils = require 'mp.utils'
 
--- CONFIGURATION
--- case insensitive
+-- track selection keywords (case insensitive)
 local SUB_KEYWORDS = { "english", "eng", "en" }
 local AUD_KEYWORDS = { "japanese", "jpn", "jp" }
 local SUB_REFINE_KEYWORDS = { "honorifics" }
 
--- case sensitive
-local SIBLING_FOLDERS = { "ENG", "EN", "english", "English" }
+-- sub-directory discovery keywords (case sensitive except for Windows)
+local SIBLING_FOLDERS = { "ENG", "EN", "english", "English", "ESP", "ES", "spanish" }
 
--- 1. Scan Sibling Directories on File Load
-local function discover_sibling_subs()
+local function set_dir_discovery()
   local path = mp.get_property("path")
   if not path or path:find("^%a+://") then return end -- Skip URLs/Streams
 
-  -- Get the directory containing the video file
+  -- get the directory containing the video file
   local video_dir, _ = utils.split_path(path)
   if not video_dir or video_dir == "" then return end
 
   local paths_to_add = {}
 
-  -- Scan for folders inside the video's directory
+  -- scan for folders inside the video's directory
   for _, sibling_name in ipairs(SIBLING_FOLDERS) do
-    -- Target path is directly inside video_dir (e.g., /path/to/video/eng/)
+    -- target path is directly inside video_dir (e.g., /path/to/video/eng/)
     local target_path = utils.join_path(video_dir, sibling_name)
 
-    -- Verify it actually exists and is readable
+    -- verify it actually exists and is readable
     local info = utils.readdir(target_path)
     if info then
       table.insert(paths_to_add, sibling_name)
@@ -42,40 +40,21 @@ local function discover_sibling_subs()
   end
 end
 
--- 2. Smart Track Selection Logic
-local function select_audio_n_subs()
+local function select_track(resource, keywords_1st, keywords_2nd)
   local track_list = mp.get_property_native("track-list")
   if not track_list then return end
 
   local primary_matches = {}
 
-  -- Step A: Find all tracks matching primary language keywords
+  -- multi-selection of resources based on primary keys
   for _, track in ipairs(track_list) do
-    if track.type == "sub" then
+    if track.type == resource.type then
       local lang = (track.lang or ""):lower()
       local title = (track.title or ""):lower()
+      mp.msg.info("[" .. resource.type .. "] lang: " .. lang)
 
       local is_primary_match = false
-      for _, kw in ipairs(SUB_KEYWORDS) do
-        -- matches only full words
-        if lang == kw or title:find("%f[%w]" .. kw .. "%f[%W]") then
-          is_primary_match = true
-          break
-        end
-      end
-
-      if is_primary_match then
-        table.insert(primary_matches, track)
-      end
-    end
-
-    if track.type == "audio" then
-      local lang = (track.lang or ""):lower()
-      local title = (track.title or ""):lower()
-
-      local is_primary_match = false
-      for _, kw in ipairs(AUD_KEYWORDS) do
-        -- matches only full words
+      for _, kw in ipairs(keywords_1st) do
         if lang == kw or title:find("%f[%w]" .. kw .. "%f[%W]") then
           is_primary_match = true
           break
@@ -90,30 +69,32 @@ local function select_audio_n_subs()
 
   if #primary_matches == 0 then return end
 
-  -- Step B: Greedily search primary matches for secondary keywords
+  -- greedy refinement of resource based on secondary keys
   for _, track in ipairs(primary_matches) do
     local title = (track.title or ""):lower()
 
-    if track.type == "sub" then
-      for _, sec_kw in ipairs(SUB_REFINE_KEYWORDS) do
-        -- matches only full words
+    if track.type == resource.type then
+      for _, sec_kw in ipairs(keywords_2nd) do
         if title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
-          -- Found an anime-specific track, select it immediately
-          mp.set_property_number("sid", track.id)
-          mp.msg.info("Selected secondary match: " .. (track.title or "Untitled"))
+          mp.set_property_number(resource.res, track.id)
+          mp.msg.info("Refined selection: " .. (track.title or "Untitled"))
           return
         end
       end
     end
   end
 
-  -- Step C: Fallback to the first primary language match if no secondary matches
-  mp.set_property_number("sid", primary_matches[1].id)
-  mp.msg.info("Selected primary fallback: " .. (primary_matches[1].title or "Untitled"))
+  mp.set_property_number(resource.res, primary_matches[1].id)
+  mp.msg.info("Primary selection: " .. (primary_matches[1].title or "Untitled"))
+end
+
+local function select_audio_n_subs()
+  select_track({ type = "sub", res = "sid" }, SUB_KEYWORDS, SUB_REFINE_KEYWORDS)
+  select_track({ type = "audio", res = "aid" }, AUD_KEYWORDS, {})
 end
 
 -- Hook into mpv events
 -- File loaded event triggers right before track layout selection
-mp.add_hook("on_load", 50, discover_sibling_subs)
+mp.add_hook("on_load", 50, set_dir_discovery)
 -- Observe track changes to select the best track once loaded
 mp.register_event("file-loaded", select_audio_n_subs)
