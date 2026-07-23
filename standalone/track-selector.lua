@@ -62,7 +62,6 @@ local function select_track(resource, keywords_1st, keywords_2nd)
     if track.type == resource.type then
       local lang = (track.lang or ""):lower()
       local title = (track.title or ""):lower()
-      mp.msg.info("[" .. resource.type .. "] lang: " .. lang)
 
       local is_primary_match = false
       for _, kw in ipairs(keywords_1st) do
@@ -88,7 +87,10 @@ local function select_track(resource, keywords_1st, keywords_2nd)
       for _, sec_kw in ipairs(keywords_2nd) do
         if title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
           mp.set_property_number(resource.res, track.id)
-          mp.msg.info("Refined selection: " .. (track.title or "Untitled"))
+          mp.msg.info(
+            "Refined " .. resource.type ..
+            " selection: " .. (track.title or "Untitled")
+          )
           return
         end
       end
@@ -96,7 +98,10 @@ local function select_track(resource, keywords_1st, keywords_2nd)
   end
 
   mp.set_property_number(resource.res, primary_matches[1].id)
-  mp.msg.info("Primary selection: " .. (primary_matches[1].title or "Untitled"))
+  mp.msg.info(
+    "Primary " .. resource.type ..
+    " selection: " .. (primary_matches[1].title or "Untitled")
+  )
 end
 
 local function select_audio_n_subs()
