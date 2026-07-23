@@ -10,9 +10,10 @@ local SIBLING_FOLDERS = { "ENG", "EN", "english", "English", "ESP", "ES", "spani
 
 local function set_dir_discovery()
   local path = mp.get_property("path")
-  if not path or path:find("^%a+://") then return end -- Skip URLs/Streams
+  -- skip URLs/streams
+  if not path or path:find("^%a+://") then return end
 
-  -- get the directory containing the video file
+  -- splits path and filename
   local video_dir, _ = utils.split_path(path)
   if not video_dir or video_dir == "" then return end
 
@@ -20,10 +21,9 @@ local function set_dir_discovery()
 
   -- scan for folders inside the video's directory
   for _, sibling_name in ipairs(SIBLING_FOLDERS) do
-    -- target path is directly inside video_dir (e.g., /path/to/video/eng/)
     local target_path = utils.join_path(video_dir, sibling_name)
 
-    -- verify it actually exists and is readable
+    -- verify it path exists
     local info = utils.readdir(target_path)
     if info then
       table.insert(paths_to_add, sibling_name)
@@ -93,8 +93,5 @@ local function select_audio_n_subs()
   select_track({ type = "audio", res = "aid" }, AUD_KEYWORDS, {})
 end
 
--- Hook into mpv events
--- File loaded event triggers right before track layout selection
 mp.add_hook("on_load", 50, set_dir_discovery)
--- Observe track changes to select the best track once loaded
 mp.register_event("file-loaded", select_audio_n_subs)
