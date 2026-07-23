@@ -2,8 +2,9 @@ local utils = require 'mp.utils'
 
 -- CONFIGURATION
 -- case insensitive
-local PRIMARY_KEYWORDS = { "english", "eng", "en" }
-local SECONDARY_KEYWORDS = { "honorifics" }
+local SUB_KEYWORDS = { "english", "eng", "en" }
+local AUD_KEYWORDS = { "japanese", "jpn", "jp" }
+local SUB_REFINE_KEYWORDS = { "honorifics" }
 
 -- case sensitive
 local SIBLING_FOLDERS = { "ENG", "EN", "english", "English" }
@@ -11,7 +12,7 @@ local SIBLING_FOLDERS = { "ENG", "EN", "english", "English" }
 -- 1. Scan Sibling Directories on File Load
 local function discover_sibling_subs()
   local path = mp.get_property("path")
-  if not path or path:find("^%a+://") then return end   -- Skip URLs/Streams
+  if not path or path:find("^%a+://") then return end -- Skip URLs/Streams
 
   -- Get the directory containing the video file
   local video_dir, _ = utils.split_path(path)
@@ -42,7 +43,7 @@ local function discover_sibling_subs()
 end
 
 -- 2. Smart Track Selection Logic
-local function select_best_subtitle()
+local function select_audio_n_subs()
   local track_list = mp.get_property_native("track-list")
   if not track_list then return end
 
@@ -55,7 +56,25 @@ local function select_best_subtitle()
       local title = (track.title or ""):lower()
 
       local is_primary_match = false
-      for _, kw in ipairs(PRIMARY_KEYWORDS) do
+      for _, kw in ipairs(SUB_KEYWORDS) do
+        -- matches only full words
+        if lang == kw or title:find("%f[%w]" .. kw .. "%f[%W]") then
+          is_primary_match = true
+          break
+        end
+      end
+
+      if is_primary_match then
+        table.insert(primary_matches, track)
+      end
+    end
+
+    if track.type == "audio" then
+      local lang = (track.lang or ""):lower()
+      local title = (track.title or ""):lower()
+
+      local is_primary_match = false
+      for _, kw in ipairs(AUD_KEYWORDS) do
         -- matches only full words
         if lang == kw or title:find("%f[%w]" .. kw .. "%f[%W]") then
           is_primary_match = true
@@ -74,13 +93,16 @@ local function select_best_subtitle()
   -- Step B: Greedily search primary matches for secondary keywords
   for _, track in ipairs(primary_matches) do
     local title = (track.title or ""):lower()
-    for _, sec_kw in ipairs(SECONDARY_KEYWORDS) do
-      -- matches only full words
-      if title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
-        -- Found an anime-specific track, select it immediately
-        mp.set_property_number("sid", track.id)
-        mp.msg.info("Selected secondary match: " .. (track.title or "Untitled"))
-        return
+
+    if track.type == "sub" then
+      for _, sec_kw in ipairs(SUB_REFINE_KEYWORDS) do
+        -- matches only full words
+        if title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
+          -- Found an anime-specific track, select it immediately
+          mp.set_property_number("sid", track.id)
+          mp.msg.info("Selected secondary match: " .. (track.title or "Untitled"))
+          return
+        end
       end
     end
   end
@@ -94,4 +116,4 @@ end
 -- File loaded event triggers right before track layout selection
 mp.add_hook("on_load", 50, discover_sibling_subs)
 -- Observe track changes to select the best track once loaded
-mp.register_event("file-loaded", select_best_subtitle)
+mp.register_event("file-loaded", select_audio_n_subs)
