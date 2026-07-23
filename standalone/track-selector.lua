@@ -55,53 +55,51 @@ local function select_track(resource, keywords_1st, keywords_2nd)
   local track_list = mp.get_property_native("track-list")
   if not track_list then return end
 
-  local primary_matches = {}
+  local pri_dict = {}
 
   -- multi-selection of resources based on primary keys
   for _, track in ipairs(track_list) do
     if track.type == resource.type then
       local lang = (track.lang or ""):lower()
       local title = (track.title or ""):lower()
+      local pri = 0
 
-      local is_primary_match = false
+      if track.default then
+        pri = pri + 1
+      end
+
       for _, kw in ipairs(keywords_1st) do
         if lang == kw or title:find("%f[%w]" .. kw .. "%f[%W]") then
-          is_primary_match = true
+          pri = pri + 2
           break
         end
       end
 
-      if is_primary_match then
-        table.insert(primary_matches, track)
+      if pri > 0 then
+        table.insert(pri_dict, { pri = pri, track = track })
       end
     end
   end
 
-  if #primary_matches == 0 then return end
+  if #pri_dict == 0 then return end
 
-  -- greedy refinement of resource based on secondary keys
-  for _, track in ipairs(primary_matches) do
-    local title = (track.title or ""):lower()
-
-    if track.type == resource.type then
-      for _, sec_kw in ipairs(keywords_2nd) do
-        if title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
-          mp.set_property_number(resource.res, track.id)
-          mp.msg.info(
-            "Refined " .. resource.type ..
-            " selection: " .. (track.title or "Untitled")
-          )
-          return
-        end
+  for _, entry in ipairs(pri_dict) do
+    local curr_title = entry.track.title
+    for _, sec_kw in ipairs(keywords_2nd) do
+      if curr_title and curr_title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
+        entry.pri = entry.pri + 5
       end
     end
   end
 
-  mp.set_property_number(resource.res, primary_matches[1].id)
+  table.sort(pri_dict, function(e1, e2) return e1.pri > e2.pri end)
+
+  local pick = pri_dict[1]
   mp.msg.info(
-    "Primary " .. resource.type ..
-    " selection: " .. (primary_matches[1].title or "Untitled")
+    "picked " .. resource.type .. " with priority " ..
+    pick.pri .. " (" .. (pick.track.title or "Untitled") .. ")"
   )
+  mp.set_property_number(resource.res, pick.track.id)
 end
 
 local function select_audio_n_subs()
