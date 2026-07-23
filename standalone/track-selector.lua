@@ -5,8 +5,18 @@ local SUB_KEYWORDS = { "english", "eng", "en" }
 local AUD_KEYWORDS = { "japanese", "jpn", "jp" }
 local SUB_REFINE_KEYWORDS = { "honorifics" }
 
--- sub-directory discovery keywords (case sensitive except for Windows)
-local SIBLING_FOLDERS = { "ENG", "EN", "english", "English", "ESP", "ES", "spanish" }
+-- sub-directory discovery keywords (case insensitive)
+local SUBDIR_KEYWORDS = {
+  "eng",
+  "en",
+  "english",
+  "esp",
+  "es",
+  "spanish",
+  "jpn",
+  "jp",
+  "japanese"
+}
 
 local function set_dir_discovery()
   local path = mp.get_property("path")
@@ -19,14 +29,15 @@ local function set_dir_discovery()
 
   local paths_to_add = {}
 
-  -- scan for folders inside the video's directory
-  for _, sibling_name in ipairs(SIBLING_FOLDERS) do
-    local target_path = utils.join_path(video_dir, sibling_name)
+  sub_dirs = utils.readdir(video_dir)
 
-    -- verify it path exists
-    local info = utils.readdir(target_path)
-    if info then
-      table.insert(paths_to_add, sibling_name)
+  -- the reason for this pattern is to allow the keywords to be case-less
+  for _, dir in ipairs(sub_dirs) do
+    for _, kw in ipairs(SUBDIR_KEYWORDS) do
+      if kw:lower() == dir:lower() then
+        table.insert(paths_to_add, dir)
+        break
+      end
     end
   end
 
