@@ -86,7 +86,7 @@ local function select_track(resource, keywords_1st, keywords_2nd)
   for _, entry in ipairs(pri_dict) do
     local curr_title = entry.track.title
     for _, sec_kw in ipairs(keywords_2nd) do
-      if curr_title and curr_title:find("%f[%w]" .. sec_kw .. "%f[%W]") then
+      if curr_title and curr_title:lower():find("%f[%w]" .. sec_kw .. "%f[%W]") then
         entry.pri = entry.pri + 5
       end
     end
