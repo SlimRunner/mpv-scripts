@@ -7,12 +7,14 @@ local SUB_REFINE_KEYWORDS = { "honorifics" }
 
 -- sub-directory discovery keywords (case insensitive)
 local SUBDIR_KEYWORDS = {
+  "subs",
   "eng",
   "en",
   "english",
   "esp",
   "es",
   "spanish",
+  "jap",
   "jpn",
   "jp",
   "japanese"
