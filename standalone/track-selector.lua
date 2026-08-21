@@ -2,7 +2,7 @@ local utils = require 'mp.utils'
 
 -- track selection keywords (case insensitive)
 local SUB_KEYWORDS = { "english", "eng", "en" }
-local AUD_KEYWORDS = { "japanese", "jpn", "jp" }
+local AUD_KEYWORDS = { "japanese", "jpn", "jp", "ja" }
 local SUB_REFINE_KEYWORDS = { "honorifics" }
 
 -- sub-directory discovery keywords (case insensitive)
@@ -14,6 +14,7 @@ local SUBDIR_KEYWORDS = {
   "esp",
   "es",
   "spanish",
+  "ja",
   "jap",
   "jpn",
   "jp",
